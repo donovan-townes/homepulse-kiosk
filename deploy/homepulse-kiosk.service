@@ -1,0 +1,19 @@
+[Unit]
+Description=HomePulse Kiosk
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=homepulse
+Group=homepulse
+WorkingDirectory=/opt/homepulse-kiosk
+EnvironmentFile=/etc/homepulse-kiosk.env
+ExecStart=/usr/bin/node /opt/homepulse-kiosk/dist/server.js
+Restart=always
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

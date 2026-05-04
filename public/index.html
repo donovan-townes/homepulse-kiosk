@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>HomePulse Kiosk</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <main class="layout">
+      <header class="hero card">
+        <div>
+          <p class="eyebrow">House status</p>
+          <h1>HomePulse Kiosk</h1>
+          <p class="lede">Local-first dashboard for reminders, maintenance, and household status.</p>
+        </div>
+        <div class="clock" id="clock"></div>
+      </header>
+
+      <section class="grid">
+        <article class="card">
+          <div class="section-heading">
+            <h2>Today</h2>
+            <span id="item-count">0 items</span>
+          </div>
+          <ul class="list" id="items-list"></ul>
+        </article>
+
+        <aside class="card status-panel">
+          <h2>Phase 1 focus</h2>
+          <ul>
+            <li>Reliable local display</li>
+            <li>Admin-managed reminders and tasks</li>
+            <li>Light read-only external feeds</li>
+            <li>No direct device control yet</li>
+          </ul>
+          <a class="button secondary" href="/admin">Open admin</a>
+        </aside>
+      </section>
+    </main>
+
+    <script type="module" src="/app.js"></script>
+  </body>
+  </html>
