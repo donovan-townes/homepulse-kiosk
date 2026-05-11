@@ -22,7 +22,11 @@
 body {
   margin: 0;
   background:
-    radial-gradient(circle at top right, rgba(15, 91, 215, 0.08), transparent 28%),
+    radial-gradient(
+      circle at top right,
+      rgba(15, 91, 215, 0.08),
+      transparent 28%
+    ),
     linear-gradient(180deg, #fdfcff 0%, var(--background) 100%);
   color: var(--text);
 }
@@ -103,7 +107,11 @@ h1 {
   min-width: 170px;
   padding: 18px 20px;
   border-radius: 18px;
-  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+  background: linear-gradient(
+    135deg,
+    var(--primary) 0%,
+    var(--primary-dark) 100%
+  );
   color: white;
   font-size: 1.6rem;
   font-weight: 700;

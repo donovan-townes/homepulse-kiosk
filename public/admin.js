@@ -59,7 +59,8 @@ if (formElement instanceof HTMLFormElement) {
 
     if (!response.ok) {
       if (formStatusElement) {
-        formStatusElement.textContent = "Could not create item. Check the values and try again.";
+        formStatusElement.textContent =
+          "Could not create item. Check the values and try again.";
       }
       return;
     }

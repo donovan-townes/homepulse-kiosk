@@ -197,9 +197,12 @@ git clone <your-github-repo-url> homepulse-kiosk
 cd /opt/homepulse-kiosk
 npm ci
 npm run build
+npm prune --omit=dev
 ```
 
 For now this is acceptable on the kiosk. If build time becomes annoying later, switch to shipping prebuilt artifacts.
+
+On low-storage devices, `npm prune --omit=dev` is strongly recommended after a successful build.
 
 ## Step 6: Create The Environment File
 
@@ -207,7 +210,7 @@ Create `/etc/homepulse-kiosk.env`:
 
 ```bash
 sudo tee /etc/homepulse-kiosk.env >/dev/null <<'EOF'
-HOST=127.0.0.1
+HOST=0.0.0.0
 PORT=3000
 HOMEPULSE_DATA_DIR=/var/lib/homepulse-kiosk
 HOMEPULSE_DB_PATH=/var/lib/homepulse-kiosk/homepulse.db
@@ -215,6 +218,8 @@ HOMEPULSE_APP_VERSION=0.1.0
 EOF
 sudo chmod 600 /etc/homepulse-kiosk.env
 ```
+
+Use `HOST=0.0.0.0` if you want to reach `/admin` from other machines on your Tailnet. If you set `HOST=127.0.0.1`, only local access on the kiosk itself will work.
 
 Later you can extend this file with admin secrets and integration settings.
 
@@ -232,19 +237,79 @@ curl http://127.0.0.1:3000/health
 
 If `/health` returns JSON with `status: ok`, the service layer is ready.
 
+If the service is restarting instead of running, stop and debug before continuing:
+
+```bash
+sudo systemctl stop homepulse-kiosk
+sudo journalctl -u homepulse-kiosk -n 120 --no-pager
+node -v
+ls -lah /opt/homepulse-kiosk/dist/server.js
+sudo -u homepulse /usr/bin/node /opt/homepulse-kiosk/dist/server.js
+```
+
+If `npm run build` fails with `EACCES` in `/opt/homepulse-kiosk/dist`, fix ownership and rebuild:
+
+```bash
+sudo chown -R homepulse:homepulse /opt/homepulse-kiosk
+sudo chown -R homepulse:homepulse /var/lib/homepulse-kiosk
+sudo -iu homepulse
+cd /opt/homepulse-kiosk
+npm run build
+```
+
+If your current checkout still outputs `dist/src/server.js`, either update to the latest repo revision or temporarily point the service to that path.
+
+Fix the reported error, then restart and re-check:
+
+```bash
+sudo systemctl restart homepulse-kiosk
+sudo systemctl status homepulse-kiosk
+curl -sSf http://127.0.0.1:3000/health
+```
+
 ## Step 8: Install The Lightweight Kiosk Display Stack
 
 Because the Wyse 3040 is resource-constrained, use a minimal Xorg stack instead of a full desktop environment.
 
 ```bash
-sudo apt install -y --no-install-recommends xorg openbox xinit x11-xserver-utils unclutter
-sudo snap install chromium
+sudo apt install -y --no-install-recommends xorg openbox xinit x11-xserver-utils unclutter wmctrl
 ```
 
 Notes:
 
-- Chromium on Ubuntu is commonly delivered through Snap. That is heavier than ideal, but it is the most practical first pass.
-- If you discover you only have the 8 GB storage model and disk becomes tight, the next fallback is replacing Chromium with a lighter kiosk-capable browser.
+- Install a browser only after confirming free space with `df -h`.
+- Chromium via Snap is often too large for 8/16 GB thin clients once base system packages are installed.
+
+### 8A: If Snap Chromium Fails With No Space Left On Device
+
+Clean package caches and partial Snap downloads first:
+
+```bash
+sudo apt clean
+sudo rm -f /var/lib/snapd/snaps/*.partial
+sudo rm -rf /var/cache/snapd/*
+sudo journalctl --vacuum-size=50M
+df -h
+```
+
+If you want to avoid Snap entirely on this machine:
+
+```bash
+sudo systemctl stop snapd snapd.socket || true
+sudo apt purge -y snapd
+sudo apt autoremove -y --purge
+sudo rm -rf /var/lib/snapd /var/cache/snapd /snap /var/snap ~/snap
+df -h
+```
+
+Then use an APT browser that is available in your Ubuntu release:
+
+```bash
+apt-cache policy cog qutebrowser falkon
+sudo apt install -y --no-install-recommends cog
+```
+
+If `cog` is unavailable in your release, install whichever of `qutebrowser` or `falkon` is available from `apt-cache policy`.
 
 ## Step 9: Configure Auto-Login On tty1
 
@@ -274,10 +339,27 @@ openbox-session &
 while ! curl -sf http://127.0.0.1:3000/health >/dev/null; do
   sleep 2
 done
-chromium --kiosk --incognito --disable-session-crashed-bubble --disable-infobars http://127.0.0.1:3000/
+rm -rf ~/.local/share/qutebrowser/sessions
+qutebrowser 'http://127.0.0.1:3000/' &
+QB_PID=$!
+for _ in $(seq 1 40); do
+  wmctrl -x -r qutebrowser.qutebrowser -b add,fullscreen && break
+  sleep 0.25
+done
+wait "$QB_PID"
 EOF
 chmod +x ~/.xinitrc
 ```
+
+If qutebrowser still does not navigate to the app URL on startup:
+
+- Verify the backend is responding: `curl -sSf http://127.0.0.1:3000/health`
+- Check that the app service is running: `sudo systemctl status homepulse-kiosk`
+- If the health endpoint is not responding after boot, check logs: `sudo journalctl -u homepulse-kiosk -n 50 --no-pager`
+- If qutebrowser opens but does not load the page, try navigating manually by typing the URL in the address bar.
+- qutebrowser does not provide a reliable startup fullscreen CLI flag across versions. The script above forces fullscreen via the window manager at each boot.
+
+If you later switch back to Chromium, replace the final launch line with the Chromium kiosk command for that browser.
 
 Then add this to `~/.bash_profile`:
 
@@ -289,6 +371,42 @@ fi
 
 This keeps the browser from launching until the local app is healthy.
 
+### Step 10A: Pin qutebrowser startup behavior (recommended)
+
+To avoid first-run/upgrade pages and tab/session duplication, create a minimal qutebrowser config:
+
+Perform this step as the "homepulse" user.
+
+```bash
+mkdir -p ~/.config/qutebrowser
+cat > ~/.config/qutebrowser/config.py <<'EOF'
+config.load_autoconfig(False)
+
+# Always start directly on the local kiosk app.
+c.url.start_pages = ["http://127.0.0.1:3000/"]
+c.url.default_page = "http://127.0.0.1:3000/"
+
+# Do not restore previously open tabs/sessions.
+c.auto_save.session = False
+c.tabs.last_close = "startpage"
+
+# Avoid upgrade/changelog interruptions on appliance boots.
+c.changelog_after_upgrade = "never"
+EOF
+```
+
+While still logged in as the "homepulse" user, if qutebrowser already has old session files from testing, clear them once:
+
+```bash
+rm -f ~/.local/share/qutebrowser/sessions/*
+```
+
+Then restart the kiosk machine:
+
+```bash
+sudo reboot
+```
+
 ## Step 11: Reboot And Verify End-To-End
 
 ```bash
@@ -299,9 +417,20 @@ After reboot, verify:
 
 1. The machine auto-logs into the `homepulse` user.
 2. The Node app starts under `systemd`.
-3. Chromium opens in kiosk mode.
+3. qutebrowser launches automatically, opens a single tab to `http://127.0.0.1:3000/`, and is fullscreen.
 4. The display loads `http://127.0.0.1:3000/`.
 5. You can reach `http://<tailscale-ip>:3000/admin` from your main machine.
+
+If `http://<tailscale-ip>:3000/admin` is refused, run on the kiosk:
+
+```bash
+grep -E '^(HOST|PORT)=' /etc/homepulse-kiosk.env
+sudo systemctl restart homepulse-kiosk
+sudo ss -ltnp | grep ':3000'
+tailscale ip -4
+```
+
+Expected: the listener should be `0.0.0.0:3000` (or `*:3000`), not `127.0.0.1:3000`.
 
 ## Step 12: Routine Update Flow
 

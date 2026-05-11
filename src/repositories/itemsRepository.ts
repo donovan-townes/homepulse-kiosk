@@ -87,10 +87,7 @@ export class ItemsRepository {
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
 
-    this.getByIdStatement = database.prepare<
-      [number],
-      ItemRecord
-    >(`
+    this.getByIdStatement = database.prepare<[number], ItemRecord>(`
       SELECT
         id,
         title,

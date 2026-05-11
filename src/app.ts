@@ -2,7 +2,12 @@ import express from "express";
 import path from "node:path";
 import { z } from "zod";
 import { AppConfig } from "./config.js";
-import { ItemsRepository, allowedCategories, allowedPriorities, allowedStatuses } from "./repositories/itemsRepository.js";
+import {
+  ItemsRepository,
+  allowedCategories,
+  allowedPriorities,
+  allowedStatuses,
+} from "./repositories/itemsRepository.js";
 
 const createItemSchema = z.object({
   title: z.string().trim().min(1).max(120),
@@ -39,14 +44,26 @@ export function createApp({ config, itemsRepository }: CreateAppOptions) {
   });
 
   app.get("/api/items", (request, response) => {
-    const category = typeof request.query.category === "string" ? request.query.category : undefined;
+    const category =
+      typeof request.query.category === "string"
+        ? request.query.category
+        : undefined;
 
-    if (category && !allowedCategories.includes(category as (typeof allowedCategories)[number])) {
+    if (
+      category &&
+      !allowedCategories.includes(
+        category as (typeof allowedCategories)[number],
+      )
+    ) {
       response.status(400).json({ error: "Invalid category filter" });
       return;
     }
 
-    response.json({ items: itemsRepository.list(category as (typeof allowedCategories)[number] | undefined) });
+    response.json({
+      items: itemsRepository.list(
+        category as (typeof allowedCategories)[number] | undefined,
+      ),
+    });
   });
 
   app.post("/api/items", (request, response) => {

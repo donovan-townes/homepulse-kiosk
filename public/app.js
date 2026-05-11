@@ -40,7 +40,8 @@ function renderItems(items) {
 
   if (items.length === 0) {
     const emptyState = document.createElement("li");
-    emptyState.textContent = "No household items yet. Add your first reminder from the admin page.";
+    emptyState.textContent =
+      "No household items yet. Add your first reminder from the admin page.";
     itemsListElement.append(emptyState);
     return;
   }
