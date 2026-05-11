@@ -18,6 +18,7 @@ cd "$APP_DIR"
 
 npm ci
 npm run build
+npm prune --omit=dev
 
 if command -v sudo >/dev/null 2>&1; then
   sudo systemctl restart homepulse-kiosk

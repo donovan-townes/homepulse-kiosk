@@ -215,13 +215,20 @@ PORT=3000
 HOMEPULSE_DATA_DIR=/var/lib/homepulse-kiosk
 HOMEPULSE_DB_PATH=/var/lib/homepulse-kiosk/homepulse.db
 HOMEPULSE_APP_VERSION=0.1.0
+HOMEPULSE_ADMIN_PIN=1234
+HOMEPULSE_ADMIN_SESSION_SECRET=$(openssl rand -hex 32)
+HOMEPULSE_ADMIN_SESSION_TTL_MINUTES=480
+# Weather card (optional, can be left unset if not used)
+# HOMEPULSE_WEATHER_LATITUDE=15.7835
+# HOMEPULSE_WEATHER_LONGITUDE=-75.2089
+# HOMEPULSE_WEATHER_TEMPERATURE_UNIT=fahrenheit
 EOF
 sudo chmod 600 /etc/homepulse-kiosk.env
 ```
 
 Use `HOST=0.0.0.0` if you want to reach `/admin` from other machines on your Tailnet. If you set `HOST=127.0.0.1`, only local access on the kiosk itself will work.
 
-Later you can extend this file with admin secrets and integration settings.
+Set `HOMEPULSE_ADMIN_PIN` to your household PIN and replace `HOMEPULSE_ADMIN_SESSION_SECRET` with a long random string.
 
 ## Step 7: Install The systemd Service
 
@@ -441,7 +448,7 @@ cd /opt/homepulse-kiosk
 ./scripts/update-kiosk.sh
 ```
 
-That script backs up the database, installs dependencies, rebuilds the app, restarts the service, and verifies `/health`.
+That script backs up the database, installs dependencies, rebuilds the app, prunes dev dependencies, restarts the service, and verifies `/health`.
 
 ## Disk Hygiene Checklist
 
@@ -464,7 +471,7 @@ If disk gets tight, your first levers are:
 
 ## First Follow-Up Tasks After Basic Bring-Up
 
-1. Add admin authentication and session timeout.
+1. Rotate admin PIN and session secret from initial placeholders.
 2. Add a nightly backup cron job.
-3. Add a deployment version endpoint or footer in the UI.
-4. Add a restore drill using a copied SQLite file.
+3. Add a restore drill using a copied SQLite file.
+4. Add a deployment version endpoint or footer in the UI.

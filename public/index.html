@@ -17,17 +17,43 @@
             status.
           </p>
         </div>
-        <div class="clock" id="clock"></div>
+        <div class="hero-meta">
+          <div class="clock" id="clock"></div>
+          <div class="date-line" id="date-line"></div>
+        </div>
       </header>
 
-      <section class="grid">
-        <article class="card">
+      <section class="dashboard-grid">
+        <article class="card status-summary">
+          <div class="status-pill" id="status-pill">System active</div>
+          <h2 id="status-headline">Everything is running smoothly today.</h2>
+          <p class="list-meta" id="status-subtext">Loading schedule and maintenance snapshot...</p>
+        </article>
+
+        <article class="card weather-card" id="weather-card">
           <div class="section-heading">
-            <h2>Today</h2>
+            <h2>Weather</h2>
+            <span class="list-meta" id="weather-label">Not configured</span>
+          </div>
+          <p class="weather-temp" id="weather-temp">--</p>
+          <p class="weather-desc" id="weather-desc">Set weather coordinates in env file to enable forecast.</p>
+        </article>
+
+        <article class="card schedule-card">
+          <div class="section-heading">
+            <h2>Today's schedule</h2>
             <span id="item-count">0 items</span>
           </div>
-          <ul class="list" id="items-list"></ul>
+          <ul class="list schedule-list" id="items-list"></ul>
         </article>
+
+        <aside class="card maintenance-card">
+          <div class="section-heading">
+            <h2>Maintenance</h2>
+            <span id="maintenance-count">0 pending</span>
+          </div>
+          <ul class="list" id="maintenance-list"></ul>
+        </aside>
 
         <aside class="card status-panel">
           <h2>Phase 1 focus</h2>

@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>HomePulse Admin Login</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <main class="layout admin-layout">
+      <section class="card auth-card">
+        <p class="eyebrow">Admin Access</p>
+        <h1>Enter House PIN</h1>
+        <p class="lede">Use the household PIN to unlock admin controls.</p>
+
+        <form class="form" id="admin-login-form">
+          <label>
+            PIN
+            <input
+              name="pin"
+              type="password"
+              inputmode="numeric"
+              autocomplete="one-time-code"
+              maxlength="12"
+              minlength="4"
+              required
+            />
+          </label>
+          <button class="button" type="submit">Unlock admin</button>
+          <p class="form-status" id="admin-login-status"></p>
+        </form>
+
+        <a class="text-link" href="/">Back to display</a>
+      </section>
+    </main>
+
+    <script type="module" src="/admin-login.js"></script>
+  </body>
+</html>

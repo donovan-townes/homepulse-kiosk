@@ -56,3 +56,9 @@ The update script creates a SQLite backup before rebuilding and restarting the s
 - `HOMEPULSE_DATA_DIR`: override the data directory
 - `HOMEPULSE_DB_PATH`: override the SQLite file path
 - `HOMEPULSE_APP_VERSION`: override the reported app version
+- `HOMEPULSE_ADMIN_PIN`: PIN required to unlock `/admin` and write APIs, defaults to `1234`
+- `HOMEPULSE_ADMIN_SESSION_SECRET`: cookie signing secret for admin sessions
+- `HOMEPULSE_ADMIN_SESSION_TTL_MINUTES`: admin session duration in minutes, defaults to `480`
+- `HOMEPULSE_WEATHER_LATITUDE`: optional weather latitude for Open-Meteo
+- `HOMEPULSE_WEATHER_LONGITUDE`: optional weather longitude for Open-Meteo
+- `HOMEPULSE_WEATHER_TEMPERATURE_UNIT`: `fahrenheit` or `celsius`, defaults to `fahrenheit`

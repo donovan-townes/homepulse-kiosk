@@ -32,6 +32,10 @@ function buildTestApp() {
       dataDir: tempDir,
       databasePath,
       appVersion: "test",
+      adminPin: "1234",
+      adminSessionSecret: "test-secret",
+      adminSessionTtlMinutes: 60,
+      weatherTemperatureUnit: "fahrenheit",
     },
     itemsRepository,
   });
@@ -53,13 +57,24 @@ describe("HomePulse app", () => {
   it("creates and lists household items", async () => {
     const { app, database } = buildTestApp();
 
-    const createResponse = await request(app).post("/api/items").send({
-      title: "Replace HVAC filter",
-      category: "filter",
-      priority: "high",
-      notes: "Order two MERV-13 filters",
-      dueDate: "2026-06-01T16:00:00.000Z",
+    const loginResponse = await request(app).post("/api/admin/login").send({
+      pin: "1234",
     });
+
+    expect(loginResponse.status).toBe(200);
+    const cookie = loginResponse.headers["set-cookie"];
+    expect(cookie).toBeDefined();
+
+    const createResponse = await request(app)
+      .post("/api/items")
+      .set("Cookie", cookie)
+      .send({
+        title: "Replace HVAC filter",
+        category: "filter",
+        priority: "high",
+        notes: "Order two MERV-13 filters",
+        dueDate: "2026-06-01T16:00:00.000Z",
+      });
 
     expect(createResponse.status).toBe(201);
     expect(createResponse.body.item.title).toBe("Replace HVAC filter");
@@ -78,7 +93,13 @@ describe("HomePulse app", () => {
 
   it("rejects invalid item payloads", async () => {
     const { app, database } = buildTestApp();
-    const response = await request(app).post("/api/items").send({
+
+    const loginResponse = await request(app).post("/api/admin/login").send({
+      pin: "1234",
+    });
+    const cookie = loginResponse.headers["set-cookie"];
+
+    const response = await request(app).post("/api/items").set("Cookie", cookie).send({
       title: "",
       category: "invalid-category",
     });
@@ -86,5 +107,18 @@ describe("HomePulse app", () => {
 
     expect(response.status).toBe(400);
     expect(response.body.error).toBe("Invalid item payload");
+  });
+
+  it("blocks item creation without admin auth", async () => {
+    const { app, database } = buildTestApp();
+    const response = await request(app).post("/api/items").send({
+      title: "Trash to curb",
+      category: "reminder",
+      priority: "normal",
+    });
+    database.close();
+
+    expect(response.status).toBe(401);
+    expect(response.body.error).toBe("Admin authentication required");
   });
 });

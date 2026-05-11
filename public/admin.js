@@ -1,6 +1,7 @@
 const formElement = document.querySelector("#item-form");
 const formStatusElement = document.querySelector("#form-status");
 const itemsListElement = document.querySelector("#admin-items-list");
+const logoutButtonElement = document.querySelector("#logout-button");
 
 function formatItem(item) {
   const dueDate = item.due_date
@@ -58,6 +59,11 @@ if (formElement instanceof HTMLFormElement) {
     });
 
     if (!response.ok) {
+      if (response.status === 401) {
+        window.location.assign("/admin");
+        return;
+      }
+
       if (formStatusElement) {
         formStatusElement.textContent =
           "Could not create item. Check the values and try again.";
@@ -70,6 +76,13 @@ if (formElement instanceof HTMLFormElement) {
       formStatusElement.textContent = "Item created.";
     }
     await loadItems();
+  });
+}
+
+if (logoutButtonElement instanceof HTMLButtonElement) {
+  logoutButtonElement.addEventListener("click", async () => {
+    await fetch("/api/admin/logout", { method: "POST" });
+    window.location.assign("/admin");
   });
 }
 

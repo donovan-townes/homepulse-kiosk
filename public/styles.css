@@ -56,6 +56,17 @@ button {
   margin-top: 24px;
 }
 
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(320px, 1fr);
+  grid-template-areas:
+    "status weather"
+    "schedule maintenance"
+    "schedule phase";
+  gap: 24px;
+  margin-top: 24px;
+}
+
 .admin-grid {
   align-items: start;
 }
@@ -74,6 +85,11 @@ button {
   justify-content: space-between;
   align-items: start;
   gap: 24px;
+}
+
+.hero-meta {
+  display: grid;
+  gap: 8px;
 }
 
 .eyebrow {
@@ -118,6 +134,61 @@ h1 {
   text-align: center;
 }
 
+.date-line {
+  color: var(--muted);
+  text-align: right;
+  font-weight: 600;
+}
+
+.status-summary {
+  grid-area: status;
+}
+
+.status-pill {
+  display: inline-flex;
+  width: fit-content;
+  margin-bottom: 16px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  background: #d7f4df;
+  color: #14522a;
+  font-weight: 700;
+}
+
+.weather-card {
+  grid-area: weather;
+  background: linear-gradient(165deg, #0d1b42 0%, #112968 100%);
+  color: #f4f7ff;
+}
+
+.weather-card .list-meta,
+.weather-card h2 {
+  color: #d4dcf7;
+}
+
+.weather-temp {
+  margin: 14px 0 8px;
+  font-size: clamp(2.2rem, 7vw, 3.5rem);
+  font-weight: 800;
+}
+
+.weather-desc {
+  margin: 0;
+  color: #c2cff5;
+}
+
+.schedule-card {
+  grid-area: schedule;
+}
+
+.maintenance-card {
+  grid-area: maintenance;
+}
+
+.status-panel {
+  grid-area: phase;
+}
+
 .section-heading {
   display: flex;
   justify-content: space-between;
@@ -152,6 +223,23 @@ h1 {
 .list li {
   display: grid;
   gap: 8px;
+}
+
+.schedule-list li {
+  padding: 18px;
+}
+
+.schedule-row-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.schedule-time {
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: var(--primary-dark);
 }
 
 .list-meta {
@@ -206,6 +294,17 @@ h1 {
   color: var(--primary);
 }
 
+.inline-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.auth-card {
+  max-width: 480px;
+  margin: 6vh auto 0;
+}
+
 .form {
   display: grid;
   gap: 16px;
@@ -242,7 +341,21 @@ h1 {
     grid-template-columns: 1fr;
   }
 
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      "status"
+      "weather"
+      "schedule"
+      "maintenance"
+      "phase";
+  }
+
   .clock {
     width: 100%;
+  }
+
+  .date-line {
+    text-align: left;
   }
 }
