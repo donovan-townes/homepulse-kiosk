@@ -11,7 +11,8 @@ TIMESTAMP="$(date +%Y%m%d-%H%M%S)"
 mkdir -p "$BACKUP_DIR"
 
 if [[ -f "$DB_PATH" ]]; then
-  cp "$DB_PATH" "$BACKUP_DIR/homepulse-$TIMESTAMP.db"
+  cp "$DB_PATH" "$BACKUP_DIR/homepulse-$TIMESTAMP.db" \
+    || echo "Warning: backup skipped (permission error) — fix ownership with: sudo chown -R homepulse:homepulse $DATA_DIR"
 fi
 
 cd "$APP_DIR"

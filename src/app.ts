@@ -117,6 +117,18 @@ export function createApp({ config, itemsRepository }: CreateAppOptions) {
   }
 
   app.use(express.json());
+
+  // Auth-gated route MUST be registered before express.static so the static
+  // file middleware cannot serve admin.html directly and bypass the PIN check.
+  app.get("/admin", (request, response) => {
+    if (!isAdminAuthenticated(request)) {
+      response.sendFile(path.join(publicDir, "admin-login.html"));
+      return;
+    }
+
+    response.sendFile(path.join(publicDir, "admin.html"));
+  });
+
   app.use(express.static(publicDir));
 
   app.get("/health", (_request, response) => {
@@ -201,15 +213,6 @@ export function createApp({ config, itemsRepository }: CreateAppOptions) {
 
     const item = itemsRepository.create(parsedBody.data, "admin");
     response.status(201).json({ item });
-  });
-
-  app.get("/admin", (_request, response) => {
-    if (!isAdminAuthenticated(_request)) {
-      response.sendFile(path.join(publicDir, "admin-login.html"));
-      return;
-    }
-
-    response.sendFile(path.join(publicDir, "admin.html"));
   });
 
   return app;
