@@ -16,15 +16,13 @@ fi
 
 cd "$APP_DIR"
 
+git pull
+
 npm ci
 npm run build
 npm prune --omit=dev
 
-if command -v sudo >/dev/null 2>&1; then
-  sudo systemctl restart homepulse-kiosk
-else
-  systemctl restart homepulse-kiosk
-fi
+sudo /usr/bin/systemctl restart homepulse-kiosk
 
 curl --fail --silent http://127.0.0.1:3000/health >/dev/null
 echo "HomePulse kiosk updated successfully"

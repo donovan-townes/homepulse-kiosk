@@ -1,0 +1,3 @@
+# Allow the homepulse service account to restart its own systemd service
+# without a password. This is intentionally narrow - one command only.
+homepulse ALL=(ALL) NOPASSWD: /usr/bin/systemctl restart homepulse-kiosk
