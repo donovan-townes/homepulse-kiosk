@@ -32,7 +32,9 @@ export function loadConfig(): AppConfig {
     adminPin: process.env.HOMEPULSE_ADMIN_PIN ?? "1234",
     adminSessionSecret:
       process.env.HOMEPULSE_ADMIN_SESSION_SECRET ?? "change-me-in-env",
-    adminSessionTtlMinutes: Number(process.env.HOMEPULSE_ADMIN_SESSION_TTL_MINUTES ?? 480),
+    adminSessionTtlMinutes: Number(
+      process.env.HOMEPULSE_ADMIN_SESSION_TTL_MINUTES ?? 480,
+    ),
     weatherLatitude: process.env.HOMEPULSE_WEATHER_LATITUDE
       ? Number(process.env.HOMEPULSE_WEATHER_LATITUDE)
       : undefined,

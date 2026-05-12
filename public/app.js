@@ -1,5 +1,6 @@
 const clockElement = document.querySelector("#clock");
 const dateLineElement = document.querySelector("#date-line");
+const clockExtraElement = document.querySelector("#clock-extra");
 const itemsListElement = document.querySelector("#items-list");
 const itemCountElement = document.querySelector("#item-count");
 const statusHeadlineElement = document.querySelector("#status-headline");
@@ -9,9 +10,11 @@ const maintenanceListElement = document.querySelector("#maintenance-list");
 const weatherLabelElement = document.querySelector("#weather-label");
 const weatherTempElement = document.querySelector("#weather-temp");
 const weatherDescElement = document.querySelector("#weather-desc");
+const weatherRangeElement = document.querySelector("#weather-range");
+const weatherMetaElement = document.querySelector("#weather-meta");
 
 function renderClock() {
-  if (!clockElement || !dateLineElement) {
+  if (!clockElement || !dateLineElement || !clockExtraElement) {
     return;
   }
 
@@ -19,6 +22,7 @@ function renderClock() {
   clockElement.textContent = now.toLocaleString([], {
     hour: "2-digit",
     minute: "2-digit",
+    second: "2-digit",
   });
 
   dateLineElement.textContent = now.toLocaleDateString([], {
@@ -26,6 +30,9 @@ function renderClock() {
     month: "long",
     day: "numeric",
   });
+
+  const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  clockExtraElement.textContent = `Local time · ${timezone}`;
 }
 
 function formatDueDate(dueDate) {
@@ -68,7 +75,9 @@ function renderMaintenance(items) {
   }
 
   const maintenanceItems = items
-    .filter((item) => item.category === "maintenance" || item.category === "filter")
+    .filter(
+      (item) => item.category === "maintenance" || item.category === "filter",
+    )
     .filter((item) => item.status !== "done")
     .slice(0, 4);
 
@@ -93,7 +102,12 @@ function renderMaintenance(items) {
 }
 
 function renderItems(items) {
-  if (!itemsListElement || !itemCountElement || !statusHeadlineElement || !statusSubtextElement) {
+  if (
+    !itemsListElement ||
+    !itemCountElement ||
+    !statusHeadlineElement ||
+    !statusSubtextElement
+  ) {
     return;
   }
 
@@ -112,11 +126,15 @@ function renderItems(items) {
         return -1;
       }
 
-      return new Date(left.due_date).getTime() - new Date(right.due_date).getTime();
+      return (
+        new Date(left.due_date).getTime() - new Date(right.due_date).getTime()
+      );
     })
     .slice(0, 6);
 
-  const todaysItems = scheduleItems.filter((item) => item.due_date && isToday(new Date(item.due_date)));
+  const todaysItems = scheduleItems.filter(
+    (item) => item.due_date && isToday(new Date(item.due_date)),
+  );
 
   itemCountElement.textContent = `${todaysItems.length || scheduleItems.length} item${(todaysItems.length || scheduleItems.length) === 1 ? "" : "s"}`;
   itemsListElement.innerHTML = "";
@@ -127,7 +145,8 @@ function renderItems(items) {
       "No household items yet. Add your first reminder from the admin page.";
     itemsListElement.append(emptyState);
     statusHeadlineElement.textContent = "No schedule items yet.";
-    statusSubtextElement.textContent = "Open admin to add reminders or maintenance tasks.";
+    statusSubtextElement.textContent =
+      "Open admin to add reminders or maintenance tasks.";
     return;
   }
 
@@ -186,7 +205,13 @@ function weatherCodeToDescription(weatherCode) {
 }
 
 async function loadWeather() {
-  if (!weatherLabelElement || !weatherTempElement || !weatherDescElement) {
+  if (
+    !weatherLabelElement ||
+    !weatherTempElement ||
+    !weatherDescElement ||
+    !weatherRangeElement ||
+    !weatherMetaElement
+  ) {
     return;
   }
 
@@ -201,6 +226,8 @@ async function loadWeather() {
     weatherTempElement.textContent = "--";
     weatherDescElement.textContent =
       "Set HOMEPULSE_WEATHER_LATITUDE and HOMEPULSE_WEATHER_LONGITUDE in env to enable weather.";
+    weatherRangeElement.textContent = "";
+    weatherMetaElement.textContent = "";
     return;
   }
 
@@ -209,23 +236,40 @@ async function loadWeather() {
     latitude: String(weatherConfig.latitude),
     longitude: String(weatherConfig.longitude),
     current: "temperature_2m,weather_code",
+    daily: "temperature_2m_max,temperature_2m_min,precipitation_probability_max",
+    forecast_days: "1",
     temperature_unit: weatherConfig.temperatureUnit,
   });
 
-  const response = await fetch(`https://api.open-meteo.com/v1/forecast?${params.toString()}`);
+  const response = await fetch(
+    `https://api.open-meteo.com/v1/forecast?${params.toString()}`,
+  );
   if (!response.ok) {
     weatherLabelElement.textContent = "Unavailable";
+    weatherRangeElement.textContent = "";
+    weatherMetaElement.textContent = "";
     return;
   }
 
   const payload = await response.json();
   const temp = payload?.current?.temperature_2m;
   const weatherCode = payload?.current?.weather_code;
+  const highTemp = payload?.daily?.temperature_2m_max?.[0];
+  const lowTemp = payload?.daily?.temperature_2m_min?.[0];
+  const precipitationChance = payload?.daily?.precipitation_probability_max?.[0];
   const unit = weatherConfig.temperatureUnit === "celsius" ? "C" : "F";
 
   weatherTempElement.textContent =
     typeof temp === "number" ? `${Math.round(temp)}°${unit}` : "--";
   weatherDescElement.textContent = weatherCodeToDescription(weatherCode);
+  weatherRangeElement.textContent =
+    typeof highTemp === "number" && typeof lowTemp === "number"
+      ? `Today: High ${Math.round(highTemp)}°${unit} · Low ${Math.round(lowTemp)}°${unit}`
+      : "Today: forecast details unavailable";
+  weatherMetaElement.textContent =
+    typeof precipitationChance === "number"
+      ? `Precipitation chance: ${Math.round(precipitationChance)}%`
+      : "Precipitation chance unavailable";
 }
 
 async function loadItems() {

@@ -40,9 +40,10 @@ button {
 }
 
 .layout {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 32px;
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  padding: clamp(16px, 2.2vw, 34px) clamp(20px, 3.2vw, 56px);
 }
 
 .admin-layout {
@@ -58,7 +59,7 @@ button {
 
 .dashboard-grid {
   display: grid;
-  grid-template-columns: minmax(0, 2fr) minmax(320px, 1fr);
+  grid-template-columns: minmax(0, 2.4fr) minmax(360px, 1.15fr);
   grid-template-areas:
     "status weather"
     "schedule maintenance"
@@ -90,6 +91,7 @@ button {
 .hero-meta {
   display: grid;
   gap: 8px;
+  min-width: 260px;
 }
 
 .eyebrow {
@@ -120,8 +122,8 @@ h1 {
 }
 
 .clock {
-  min-width: 170px;
-  padding: 18px 20px;
+  min-width: 220px;
+  padding: 20px 22px;
   border-radius: 18px;
   background: linear-gradient(
     135deg,
@@ -129,15 +131,23 @@ h1 {
     var(--primary-dark) 100%
   );
   color: white;
-  font-size: 1.6rem;
-  font-weight: 700;
+  font-size: clamp(1.8rem, 2.8vw, 2.6rem);
+  font-weight: 800;
   text-align: center;
+  letter-spacing: 0.02em;
 }
 
 .date-line {
   color: var(--muted);
   text-align: right;
-  font-weight: 600;
+  font-weight: 700;
+  font-size: 1.05rem;
+}
+
+.clock-extra {
+  color: var(--muted);
+  text-align: right;
+  font-size: 0.9rem;
 }
 
 .status-summary {
@@ -175,6 +185,13 @@ h1 {
 .weather-desc {
   margin: 0;
   color: #c2cff5;
+}
+
+.weather-range,
+.weather-meta {
+  margin: 10px 0 0;
+  color: #d9e2ff;
+  font-size: 0.95rem;
 }
 
 .schedule-card {
@@ -356,6 +373,10 @@ h1 {
   }
 
   .date-line {
+    text-align: left;
+  }
+
+  .clock-extra {
     text-align: left;
   }
 }

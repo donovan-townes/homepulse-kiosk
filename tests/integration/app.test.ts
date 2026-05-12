@@ -99,10 +99,13 @@ describe("HomePulse app", () => {
     });
     const cookie = loginResponse.headers["set-cookie"];
 
-    const response = await request(app).post("/api/items").set("Cookie", cookie).send({
-      title: "",
-      category: "invalid-category",
-    });
+    const response = await request(app)
+      .post("/api/items")
+      .set("Cookie", cookie)
+      .send({
+        title: "",
+        category: "invalid-category",
+      });
     database.close();
 
     expect(response.status).toBe(400);

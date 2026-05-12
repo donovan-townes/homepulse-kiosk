@@ -20,6 +20,7 @@
         <div class="hero-meta">
           <div class="clock" id="clock"></div>
           <div class="date-line" id="date-line"></div>
+          <div class="clock-extra" id="clock-extra"></div>
         </div>
       </header>
 
@@ -27,7 +28,9 @@
         <article class="card status-summary">
           <div class="status-pill" id="status-pill">System active</div>
           <h2 id="status-headline">Everything is running smoothly today.</h2>
-          <p class="list-meta" id="status-subtext">Loading schedule and maintenance snapshot...</p>
+          <p class="list-meta" id="status-subtext">
+            Loading schedule and maintenance snapshot...
+          </p>
         </article>
 
         <article class="card weather-card" id="weather-card">
@@ -36,7 +39,11 @@
             <span class="list-meta" id="weather-label">Not configured</span>
           </div>
           <p class="weather-temp" id="weather-temp">--</p>
-          <p class="weather-desc" id="weather-desc">Set weather coordinates in env file to enable forecast.</p>
+          <p class="weather-desc" id="weather-desc">
+            Set weather coordinates in env file to enable forecast.
+          </p>
+          <p class="weather-range" id="weather-range"></p>
+          <p class="weather-meta" id="weather-meta"></p>
         </article>
 
         <article class="card schedule-card">
