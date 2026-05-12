@@ -34,16 +34,22 @@
         </article>
 
         <article class="card weather-card" id="weather-card">
-          <div class="section-heading">
+          <div class="weather-head">
             <h2>Weather</h2>
-            <span class="list-meta" id="weather-label">Not configured</span>
+            <p class="list-meta" id="weather-label">Not configured</p>
           </div>
-          <p class="weather-temp" id="weather-temp">--</p>
-          <p class="weather-desc" id="weather-desc">
-            Set weather coordinates in env file to enable forecast.
-          </p>
-          <p class="weather-range" id="weather-range"></p>
-          <p class="weather-meta" id="weather-meta"></p>
+          <div class="weather-grid">
+            <div class="weather-now">
+              <p class="weather-temp" id="weather-temp">--</p>
+            </div>
+            <div class="weather-details">
+              <p class="weather-desc" id="weather-desc">
+                Set weather coordinates in env file to enable forecast.
+              </p>
+              <p class="weather-range" id="weather-range"></p>
+              <p class="weather-meta" id="weather-meta"></p>
+            </div>
+          </div>
         </article>
 
         <article class="card schedule-card">

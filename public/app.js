@@ -22,7 +22,6 @@ function renderClock() {
   clockElement.textContent = now.toLocaleString([], {
     hour: "2-digit",
     minute: "2-digit",
-    second: "2-digit",
   });
 
   dateLineElement.textContent = now.toLocaleDateString([], {
@@ -33,6 +32,23 @@ function renderClock() {
 
   const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
   clockExtraElement.textContent = `Local time · ${timezone}`;
+}
+
+function applyAutoTheme(sunriseIso, sunsetIso) {
+  const now = new Date();
+  let isDark = false;
+
+  if (sunriseIso && sunsetIso) {
+    const sunrise = new Date(sunriseIso);
+    const sunset = new Date(sunsetIso);
+    isDark = now < sunrise || now > sunset;
+  } else {
+    const hour = now.getHours();
+    isDark = hour < 5 || hour >= 19;
+  }
+
+  document.body.classList.toggle("theme-dark", isDark);
+  document.body.classList.toggle("theme-light", !isDark);
 }
 
 function formatDueDate(dueDate) {
@@ -228,6 +244,7 @@ async function loadWeather() {
       "Set HOMEPULSE_WEATHER_LATITUDE and HOMEPULSE_WEATHER_LONGITUDE in env to enable weather.";
     weatherRangeElement.textContent = "";
     weatherMetaElement.textContent = "";
+    applyAutoTheme();
     return;
   }
 
@@ -236,7 +253,8 @@ async function loadWeather() {
     latitude: String(weatherConfig.latitude),
     longitude: String(weatherConfig.longitude),
     current: "temperature_2m,weather_code",
-    daily: "temperature_2m_max,temperature_2m_min,precipitation_probability_max",
+    daily:
+      "temperature_2m_max,temperature_2m_min,precipitation_probability_max,sunrise,sunset",
     forecast_days: "1",
     temperature_unit: weatherConfig.temperatureUnit,
   });
@@ -248,6 +266,7 @@ async function loadWeather() {
     weatherLabelElement.textContent = "Unavailable";
     weatherRangeElement.textContent = "";
     weatherMetaElement.textContent = "";
+    applyAutoTheme();
     return;
   }
 
@@ -256,7 +275,10 @@ async function loadWeather() {
   const weatherCode = payload?.current?.weather_code;
   const highTemp = payload?.daily?.temperature_2m_max?.[0];
   const lowTemp = payload?.daily?.temperature_2m_min?.[0];
-  const precipitationChance = payload?.daily?.precipitation_probability_max?.[0];
+  const precipitationChance =
+    payload?.daily?.precipitation_probability_max?.[0];
+  const sunrise = payload?.daily?.sunrise?.[0];
+  const sunset = payload?.daily?.sunset?.[0];
   const unit = weatherConfig.temperatureUnit === "celsius" ? "C" : "F";
 
   weatherTempElement.textContent =
@@ -270,6 +292,8 @@ async function loadWeather() {
     typeof precipitationChance === "number"
       ? `Precipitation chance: ${Math.round(precipitationChance)}%`
       : "Precipitation chance unavailable";
+
+  applyAutoTheme(sunrise, sunset);
 }
 
 async function loadItems() {
@@ -279,6 +303,8 @@ async function loadItems() {
 }
 
 renderClock();
-setInterval(renderClock, 30_000);
+applyAutoTheme();
+setInterval(renderClock, 60_000);
+setInterval(() => applyAutoTheme(), 300_000);
 void loadItems();
 void loadWeather();

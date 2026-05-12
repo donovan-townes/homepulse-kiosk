@@ -15,6 +15,32 @@
   font-family: "Public Sans", system-ui, sans-serif;
 }
 
+body.theme-light {
+  --background: #faf8ff;
+  --surface: #ffffff;
+  --surface-alt: #edf3ff;
+  --text: #191b23;
+  --muted: #5f6677;
+  --border: #d9dfeb;
+  --primary: #0f5bd7;
+  --primary-dark: #0a3fa0;
+  --accent: #dbe8ff;
+  --shadow: 0 16px 40px rgba(10, 63, 160, 0.08);
+}
+
+body.theme-dark {
+  --background: #101522;
+  --surface: #171f32;
+  --surface-alt: #202c46;
+  --text: #ebeffa;
+  --muted: #a8b2ca;
+  --border: #2d3a58;
+  --primary: #3a7ef2;
+  --primary-dark: #1f56b9;
+  --accent: #2d4679;
+  --shadow: 0 16px 38px rgba(2, 8, 20, 0.4);
+}
+
 * {
   box-sizing: border-box;
 }
@@ -140,14 +166,15 @@ h1 {
 .date-line {
   color: var(--muted);
   text-align: right;
-  font-weight: 700;
-  font-size: 1.05rem;
+  font-weight: 800;
+  font-size: clamp(1.2rem, 1.8vw, 1.9rem);
+  line-height: 1.1;
 }
 
 .clock-extra {
   color: var(--muted);
   text-align: right;
-  font-size: 0.9rem;
+  font-size: 1rem;
 }
 
 .status-summary {
@@ -171,13 +198,34 @@ h1 {
   color: #f4f7ff;
 }
 
+.weather-head h2 {
+  margin-bottom: 4px;
+}
+
+.weather-head p {
+  margin: 0;
+}
+
+.weather-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+  align-items: start;
+  margin-top: 12px;
+}
+
+.weather-now,
+.weather-details {
+  min-height: 120px;
+}
+
 .weather-card .list-meta,
 .weather-card h2 {
   color: #d4dcf7;
 }
 
 .weather-temp {
-  margin: 14px 0 8px;
+  margin: 10px 0 8px;
   font-size: clamp(2.2rem, 7vw, 3.5rem);
   font-weight: 800;
 }
@@ -189,9 +237,23 @@ h1 {
 
 .weather-range,
 .weather-meta {
-  margin: 10px 0 0;
+  margin: 12px 0 0;
   color: #d9e2ff;
-  font-size: 0.95rem;
+  font-size: 1.03rem;
+}
+
+body.theme-dark .card {
+  background: rgba(18, 25, 40, 0.92);
+}
+
+body.theme-dark .status-panel li,
+body.theme-dark .list li {
+  background: var(--surface);
+}
+
+body.theme-dark .status-pill {
+  background: #16492a;
+  color: #b8efcc;
 }
 
 .schedule-card {
@@ -378,5 +440,9 @@ h1 {
 
   .clock-extra {
     text-align: left;
+  }
+
+  .weather-grid {
+    grid-template-columns: 1fr;
   }
 }
