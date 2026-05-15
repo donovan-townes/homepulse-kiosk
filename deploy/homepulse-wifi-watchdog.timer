@@ -1,0 +1,11 @@
+[Unit]
+Description=Run HomePulse Wi-Fi watchdog periodically
+
+[Timer]
+OnBootSec=2min
+OnUnitActiveSec=2min
+Persistent=true
+Unit=homepulse-wifi-watchdog.service
+
+[Install]
+WantedBy=timers.target

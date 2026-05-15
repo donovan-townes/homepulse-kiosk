@@ -1,0 +1,8 @@
+[Unit]
+Description=HomePulse Wi-Fi watchdog
+After=NetworkManager.service
+Wants=NetworkManager.service
+
+[Service]
+Type=oneshot
+ExecStart=/opt/homepulse-kiosk/scripts/wifi-watchdog.sh

@@ -112,6 +112,16 @@ describe("HomePulse app", () => {
     expect(response.body.error).toBe("Invalid item payload");
   });
 
+  it("returns a network status payload", async () => {
+    const { app, database } = buildTestApp();
+    const response = await request(app).get("/api/network-status");
+    database.close();
+
+    expect(response.status).toBe(200);
+    expect(response.body).toHaveProperty("state");
+    expect(response.body).toHaveProperty("lastCheckedAt");
+  });
+
   it("blocks item creation without admin auth", async () => {
     const { app, database } = buildTestApp();
     const response = await request(app).post("/api/items").send({

@@ -1,6 +1,8 @@
 import express from "express";
+import { execFile } from "node:child_process";
 import crypto from "node:crypto";
 import path from "node:path";
+import { promisify } from "node:util";
 import { z } from "zod";
 import { AppConfig } from "./config.js";
 import {
@@ -27,6 +29,93 @@ type CreateAppOptions = {
   config: AppConfig;
   itemsRepository: ItemsRepository;
 };
+
+const execFileAsync = promisify(execFile);
+
+type NetworkStatus = {
+  state: "connected" | "disconnected" | "unknown";
+  interfaceName?: string;
+  connection?: string;
+  ssid?: string;
+  signalPct?: number;
+  lastCheckedAt: string;
+};
+
+async function inspectNetworkStatus(): Promise<NetworkStatus> {
+  const lastCheckedAt = new Date().toISOString();
+
+  try {
+    const { stdout } = await execFileAsync(
+      "nmcli",
+      ["-t", "-f", "DEVICE,TYPE,STATE,CONNECTION", "device", "status"],
+      { timeout: 4000, encoding: "utf8" },
+    );
+
+    const wifiLine = stdout
+      .split("\n")
+      .map((line) => line.trim())
+      .find((line) => line.length > 0 && line.split(":")[1] === "wifi");
+
+    if (!wifiLine) {
+      return { state: "disconnected", lastCheckedAt };
+    }
+
+    const [interfaceName = "", deviceType = "", state = "", ...rest] =
+      wifiLine.split(":");
+    const connection = rest.join(":") || undefined;
+
+    if (deviceType !== "wifi") {
+      return { state: "unknown", lastCheckedAt };
+    }
+
+    if (state !== "connected") {
+      return {
+        state: state === "disconnected" ? "disconnected" : "unknown",
+        interfaceName: interfaceName || undefined,
+        connection,
+        lastCheckedAt,
+      };
+    }
+
+    let ssid: string | undefined;
+    let signalPct: number | undefined;
+
+    try {
+      const { stdout: wifiStdout } = await execFileAsync(
+        "nmcli",
+        ["-t", "-f", "IN-USE,SSID,SIGNAL", "device", "wifi"],
+        { timeout: 4000, encoding: "utf8" },
+      );
+
+      const activeLine = wifiStdout
+        .split("\n")
+        .map((line) => line.trim())
+        .find((line) => line.startsWith("*:"));
+
+      if (activeLine) {
+        const [, activeSsid = "", activeSignal = ""] = activeLine.split(":");
+        ssid = activeSsid || undefined;
+        const parsedSignal = Number(activeSignal);
+        if (!Number.isNaN(parsedSignal)) {
+          signalPct = parsedSignal;
+        }
+      }
+    } catch {
+      // Ignore secondary lookup failure; the connection state is still useful.
+    }
+
+    return {
+      state: "connected",
+      interfaceName: interfaceName || undefined,
+      connection,
+      ssid,
+      signalPct,
+      lastCheckedAt,
+    };
+  } catch {
+    return { state: "unknown", lastCheckedAt };
+  }
+}
 
 export function createApp({ config, itemsRepository }: CreateAppOptions) {
   const app = express();
@@ -176,6 +265,10 @@ export function createApp({ config, itemsRepository }: CreateAppOptions) {
         category as (typeof allowedCategories)[number] | undefined,
       ),
     });
+  });
+
+  app.get("/api/network-status", async (_request, response) => {
+    response.json(await inspectNetworkStatus());
   });
 
   app.post("/api/admin/login", (request, response) => {

@@ -21,6 +21,12 @@
           <div class="clock" id="clock"></div>
           <div class="date-line" id="date-line"></div>
           <div class="clock-extra" id="clock-extra"></div>
+          <div class="network-status">
+            <span class="status-pill network-pill" id="network-status">
+              Network checking...
+            </span>
+            <span class="network-details" id="network-details"></span>
+          </div>
         </div>
       </header>
 
@@ -35,8 +41,13 @@
 
         <article class="card weather-card" id="weather-card">
           <div class="weather-head">
-            <h2>Weather</h2>
-            <p class="list-meta" id="weather-label">Not configured</p>
+            <div>
+              <h2>Weather</h2>
+              <p class="list-meta" id="weather-label">Not configured</p>
+            </div>
+            <div class="weather-head-meta">
+              <p class="weather-updated" id="weather-updated"></p>
+            </div>
           </div>
           <div class="weather-grid">
             <div class="weather-now">

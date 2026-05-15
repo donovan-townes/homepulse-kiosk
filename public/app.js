@@ -1,6 +1,8 @@
 const clockElement = document.querySelector("#clock");
 const dateLineElement = document.querySelector("#date-line");
 const clockExtraElement = document.querySelector("#clock-extra");
+const networkStatusElement = document.querySelector("#network-status");
+const networkDetailsElement = document.querySelector("#network-details");
 const itemsListElement = document.querySelector("#items-list");
 const itemCountElement = document.querySelector("#item-count");
 const statusHeadlineElement = document.querySelector("#status-headline");
@@ -8,10 +10,13 @@ const statusSubtextElement = document.querySelector("#status-subtext");
 const maintenanceCountElement = document.querySelector("#maintenance-count");
 const maintenanceListElement = document.querySelector("#maintenance-list");
 const weatherLabelElement = document.querySelector("#weather-label");
+const weatherUpdatedElement = document.querySelector("#weather-updated");
 const weatherTempElement = document.querySelector("#weather-temp");
 const weatherDescElement = document.querySelector("#weather-desc");
 const weatherRangeElement = document.querySelector("#weather-range");
 const weatherMetaElement = document.querySelector("#weather-meta");
+
+const weatherCacheKey = "homepulse-weather-cache";
 
 function renderClock() {
   if (!clockElement || !dateLineElement || !clockExtraElement) {
@@ -49,6 +54,121 @@ function applyAutoTheme(sunriseIso, sunsetIso) {
 
   document.body.classList.toggle("theme-dark", isDark);
   document.body.classList.toggle("theme-light", !isDark);
+}
+
+function formatRelativeTime(isoString) {
+  const timestamp = new Date(isoString).getTime();
+  if (Number.isNaN(timestamp)) {
+    return "unknown time";
+  }
+
+  const elapsedMinutes = Math.max(0, Math.round((Date.now() - timestamp) / 60000));
+  if (elapsedMinutes < 1) {
+    return "just now";
+  }
+
+  if (elapsedMinutes < 60) {
+    return `${elapsedMinutes} min ago`;
+  }
+
+  const elapsedHours = Math.floor(elapsedMinutes / 60);
+  if (elapsedHours < 24) {
+    return `${elapsedHours} hr${elapsedHours === 1 ? "" : "s"} ago`;
+  }
+
+  const elapsedDays = Math.floor(elapsedHours / 24);
+  return `${elapsedDays} day${elapsedDays === 1 ? "" : "s"} ago`;
+}
+
+function setNetworkStatus(status) {
+  if (!networkStatusElement || !networkDetailsElement) {
+    return;
+  }
+
+  const state = status?.state ?? "unknown";
+  const interfaceName = status?.interfaceName ?? status?.interface ?? "";
+  const connection = status?.connection ?? "";
+  const ssid = status?.ssid ?? "";
+  const signalPct = status?.signalPct;
+
+  networkStatusElement.className = `status-pill network-pill network-${state}`;
+  networkStatusElement.textContent =
+    state === "connected"
+      ? "Network online"
+      : state === "disconnected"
+        ? "Network offline"
+        : "Network unknown";
+
+  const details = [];
+  if (interfaceName) {
+    details.push(interfaceName);
+  }
+  if (connection) {
+    details.push(connection);
+  }
+  if (ssid && ssid !== connection) {
+    details.push(ssid);
+  }
+  if (typeof signalPct === "number") {
+    details.push(`${signalPct}% signal`);
+  }
+
+  networkDetailsElement.textContent = details.join(" · ");
+}
+
+function readWeatherCache() {
+  try {
+    const rawValue = localStorage.getItem(weatherCacheKey);
+    if (!rawValue) {
+      return null;
+    }
+
+    return JSON.parse(rawValue);
+  } catch {
+    return null;
+  }
+}
+
+function writeWeatherCache(cacheValue) {
+  try {
+    localStorage.setItem(weatherCacheKey, JSON.stringify(cacheValue));
+  } catch {
+    // Ignore storage failures on kiosk browsers.
+  }
+}
+
+function renderWeatherDisplay({
+  sourceLabel,
+  payload,
+  weatherConfig,
+  updatedAt,
+  isCached = false,
+}) {
+  const temp = payload?.current?.temperature_2m;
+  const weatherCode = payload?.current?.weather_code;
+  const highTemp = payload?.daily?.temperature_2m_max?.[0];
+  const lowTemp = payload?.daily?.temperature_2m_min?.[0];
+  const precipitationChance =
+    payload?.daily?.precipitation_probability_max?.[0];
+  const sunrise = payload?.daily?.sunrise?.[0];
+  const sunset = payload?.daily?.sunset?.[0];
+  const unit = weatherConfig.temperatureUnit === "celsius" ? "C" : "F";
+
+  weatherLabelElement.textContent = isCached ? `${sourceLabel} (cached)` : sourceLabel;
+  weatherTempElement.textContent =
+    typeof temp === "number" ? `${Math.round(temp)}°${unit}` : "--";
+  weatherDescElement.textContent = weatherCodeToDescription(weatherCode);
+  weatherRangeElement.textContent =
+    typeof highTemp === "number" && typeof lowTemp === "number"
+      ? `Today: High ${Math.round(highTemp)}°${unit} · Low ${Math.round(lowTemp)}°${unit}`
+      : "Today: forecast details unavailable";
+  weatherMetaElement.textContent =
+    typeof precipitationChance === "number"
+      ? `Precipitation chance: ${Math.round(precipitationChance)}%`
+      : "Precipitation chance unavailable";
+  weatherUpdatedElement.textContent = `Updated ${formatRelativeTime(updatedAt)}`;
+
+  applyAutoTheme(sunrise, sunset);
 }
 
 function formatDueDate(dueDate) {
@@ -223,6 +343,7 @@ function weatherCodeToDescription(weatherCode) {
 async function loadWeather() {
   if (
     !weatherLabelElement ||
+    !weatherUpdatedElement ||
     !weatherTempElement ||
     !weatherDescElement ||
     !weatherRangeElement ||
@@ -244,11 +365,22 @@ async function loadWeather() {
       "Set HOMEPULSE_WEATHER_LATITUDE and HOMEPULSE_WEATHER_LONGITUDE in env to enable weather.";
     weatherRangeElement.textContent = "";
     weatherMetaElement.textContent = "";
+    weatherUpdatedElement.textContent = "";
     applyAutoTheme();
     return;
   }
 
-  weatherLabelElement.textContent = "Live forecast";
+  const cachedWeather = readWeatherCache();
+  if (cachedWeather?.payload) {
+    renderWeatherDisplay({
+      sourceLabel: "Cached forecast",
+      payload: cachedWeather.payload,
+      weatherConfig: cachedWeather.weatherConfig ?? weatherConfig,
+      updatedAt: cachedWeather.updatedAt ?? new Date().toISOString(),
+      isCached: true,
+    });
+  }
+
   const params = new URLSearchParams({
     latitude: String(weatherConfig.latitude),
     longitude: String(weatherConfig.longitude),
@@ -263,37 +395,50 @@ async function loadWeather() {
     `https://api.open-meteo.com/v1/forecast?${params.toString()}`,
   );
   if (!response.ok) {
-    weatherLabelElement.textContent = "Unavailable";
-    weatherRangeElement.textContent = "";
-    weatherMetaElement.textContent = "";
-    applyAutoTheme();
+    if (!cachedWeather?.payload) {
+      weatherLabelElement.textContent = "Weather unavailable";
+      weatherTempElement.textContent = "--";
+      weatherDescElement.textContent = "No cached forecast available yet.";
+      weatherRangeElement.textContent = "";
+      weatherMetaElement.textContent = "";
+      weatherUpdatedElement.textContent = "";
+      applyAutoTheme();
+    }
     return;
   }
 
   const payload = await response.json();
-  const temp = payload?.current?.temperature_2m;
-  const weatherCode = payload?.current?.weather_code;
-  const highTemp = payload?.daily?.temperature_2m_max?.[0];
-  const lowTemp = payload?.daily?.temperature_2m_min?.[0];
-  const precipitationChance =
-    payload?.daily?.precipitation_probability_max?.[0];
-  const sunrise = payload?.daily?.sunrise?.[0];
-  const sunset = payload?.daily?.sunset?.[0];
-  const unit = weatherConfig.temperatureUnit === "celsius" ? "C" : "F";
+  const updatedAt = new Date().toISOString();
+  writeWeatherCache({
+    payload,
+    weatherConfig,
+    updatedAt,
+  });
+  renderWeatherDisplay({
+    sourceLabel: "Live forecast",
+    payload,
+    weatherConfig,
+    updatedAt,
+    isCached: false,
+  });
+}
 
-  weatherTempElement.textContent =
-    typeof temp === "number" ? `${Math.round(temp)}°${unit}` : "--";
-  weatherDescElement.textContent = weatherCodeToDescription(weatherCode);
-  weatherRangeElement.textContent =
-    typeof highTemp === "number" && typeof lowTemp === "number"
-      ? `Today: High ${Math.round(highTemp)}°${unit} · Low ${Math.round(lowTemp)}°${unit}`
-      : "Today: forecast details unavailable";
-  weatherMetaElement.textContent =
-    typeof precipitationChance === "number"
-      ? `Precipitation chance: ${Math.round(precipitationChance)}%`
-      : "Precipitation chance unavailable";
+async function loadNetworkStatus() {
+  if (!networkStatusElement || !networkDetailsElement) {
+    return;
+  }
 
-  applyAutoTheme(sunrise, sunset);
+  try {
+    const response = await fetch("/api/network-status", { cache: "no-store" });
+    if (!response.ok) {
+      throw new Error("network status unavailable");
+    }
+
+    const payload = await response.json();
+    setNetworkStatus(payload);
+  } catch {
+    setNetworkStatus({ state: "unknown" });
+  }
 }
 
 async function loadItems() {
@@ -306,5 +451,8 @@ renderClock();
 applyAutoTheme();
 setInterval(renderClock, 60_000);
 setInterval(() => applyAutoTheme(), 300_000);
+setInterval(loadWeather, 10 * 60_000);
+setInterval(loadNetworkStatus, 60_000);
 void loadItems();
 void loadWeather();
+void loadNetworkStatus();

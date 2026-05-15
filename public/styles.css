@@ -116,8 +116,35 @@ button {
 
 .hero-meta {
   display: grid;
-  gap: 8px;
+  gap: 10px;
   min-width: 260px;
+}
+
+.network-status {
+  display: grid;
+  justify-items: end;
+  gap: 4px;
+}
+
+.network-pill.network-connected {
+  background: #d7f4df;
+  color: #14522a;
+}
+
+.network-pill.network-disconnected {
+  background: #ffe4df;
+  color: #8f2b16;
+}
+
+.network-pill.network-unknown {
+  background: #efe8d4;
+  color: #725c14;
+}
+
+.network-details {
+  color: var(--muted);
+  font-size: 0.92rem;
+  text-align: right;
 }
 
 .eyebrow {
@@ -206,10 +233,23 @@ h1 {
   margin: 0;
 }
 
+.weather-head-meta {
+  display: grid;
+  justify-items: end;
+  gap: 4px;
+}
+
+.weather-updated {
+  margin: 0;
+  color: #d4dcf7;
+  font-size: 0.92rem;
+  text-align: right;
+}
+
 .weather-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 18px;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
+  gap: 20px;
   align-items: start;
   margin-top: 12px;
 }
@@ -219,6 +259,16 @@ h1 {
   min-height: 120px;
 }
 
+.weather-now {
+  display: flex;
+  align-items: start;
+}
+
+.weather-details {
+  display: grid;
+  gap: 8px;
+}
+
 .weather-card .list-meta,
 .weather-card h2 {
   color: #d4dcf7;
@@ -226,7 +276,7 @@ h1 {
 
 .weather-temp {
   margin: 10px 0 8px;
-  font-size: clamp(2.2rem, 7vw, 3.5rem);
+  font-size: clamp(2.6rem, 8vw, 4.2rem);
   font-weight: 800;
 }
 
@@ -237,7 +287,7 @@ h1 {
 
 .weather-range,
 .weather-meta {
-  margin: 12px 0 0;
+  margin: 0;
   color: #d9e2ff;
   font-size: 1.03rem;
 }
@@ -444,5 +494,12 @@ body.theme-dark .status-pill {
 
   .weather-grid {
     grid-template-columns: 1fr;
+  }
+
+  .network-status,
+  .network-details,
+  .weather-updated {
+    justify-items: start;
+    text-align: left;
   }
 }

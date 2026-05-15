@@ -230,6 +230,12 @@ Use `HOST=0.0.0.0` if you want to reach `/admin` from other machines on your Tai
 
 Set `HOMEPULSE_ADMIN_PIN` to your household PIN and replace `HOMEPULSE_ADMIN_SESSION_SECRET` with a long random string.
 
+If your Wi-Fi profile name is known, you can also set an optional watchdog hint:
+
+```bash
+# HOMEPULSE_WIFI_CONNECTION=Your Wi-Fi Name
+```
+
 ## Step 7: Install The systemd Service
 
 Copy the included service template into place.
@@ -273,6 +279,27 @@ sudo systemctl restart homepulse-kiosk
 sudo systemctl status homepulse-kiosk
 curl -sSf http://127.0.0.1:3000/health
 ```
+
+### 7A: Optional Wi-Fi Recovery Watchdog
+
+If the kiosk is in a room with marginal Wi-Fi, install a small watchdog that retries the saved connection when upstream connectivity drops.
+
+```bash
+sudo cp /opt/homepulse-kiosk/scripts/wifi-watchdog.sh /usr/local/bin/homepulse-wifi-watchdog.sh
+sudo chmod 755 /usr/local/bin/homepulse-wifi-watchdog.sh
+sudo cp /opt/homepulse-kiosk/deploy/homepulse-wifi-watchdog.service /etc/systemd/system/homepulse-wifi-watchdog.service
+sudo cp /opt/homepulse-kiosk/deploy/homepulse-wifi-watchdog.timer /etc/systemd/system/homepulse-wifi-watchdog.timer
+sudo systemctl daemon-reload
+sudo systemctl enable --now homepulse-wifi-watchdog.timer
+sudo systemctl list-timers homepulse-wifi-watchdog.timer
+```
+
+Notes:
+
+- The watchdog checks connectivity every 2 minutes.
+- If `HOMEPULSE_WIFI_CONNECTION` is set in `/etc/homepulse-kiosk.env`, it uses that profile.
+- If not set, it picks the first saved Wi-Fi connection profile from NetworkManager.
+- The watchdog logs to the journal under the `homepulse-wifi-watchdog` tag.
 
 ## Step 8: Install The Lightweight Kiosk Display Stack
 
@@ -449,6 +476,8 @@ cd /opt/homepulse-kiosk
 ```
 
 That script backs up the database, installs dependencies, rebuilds the app, prunes dev dependencies, restarts the service, and verifies `/health`.
+
+The dashboard now refreshes weather periodically and updates a visible freshness label. The network badge also polls the kiosk's Wi-Fi state so you can tell at a glance whether the unit is connected or needs attention.
 
 ## Disk Hygiene Checklist
 
