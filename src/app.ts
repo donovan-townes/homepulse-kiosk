@@ -19,6 +19,21 @@ const createItemSchema = z.object({
   status: z.enum(allowedStatuses).optional(),
   priority: z.enum(allowedPriorities).optional(),
   notes: z.string().max(1000).optional(),
+  recurrence: z
+    .object({
+      frequency: z.enum(["daily", "weekly"]),
+      interval: z.number().int().min(1).max(52).optional(),
+      daysOfWeek: z.array(z.number().int().min(0).max(6)).optional(),
+    })
+    .optional(),
+}).superRefine((value, context) => {
+  if (value.recurrence && !value.dueDate) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Recurring items require a dueDate",
+      path: ["dueDate"],
+    });
+  }
 });
 
 const loginSchema = z.object({

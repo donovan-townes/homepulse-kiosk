@@ -35,6 +35,18 @@ const migrations = [
       );
     `,
   },
+  {
+    version: 2,
+    sql: `
+      ALTER TABLE items ADD COLUMN is_recurring INTEGER NOT NULL DEFAULT 0;
+      ALTER TABLE items ADD COLUMN recurrence_frequency TEXT;
+      ALTER TABLE items ADD COLUMN recurrence_interval INTEGER NOT NULL DEFAULT 1;
+      ALTER TABLE items ADD COLUMN recurrence_days_of_week TEXT;
+
+      CREATE INDEX IF NOT EXISTS idx_items_due_date ON items (due_date);
+      CREATE INDEX IF NOT EXISTS idx_items_is_recurring ON items (is_recurring);
+    `,
+  },
 ];
 
 export function openDatabase(databasePath: string): Database.Database {

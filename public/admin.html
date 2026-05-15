@@ -27,9 +27,9 @@
           <label>
             Category
             <select name="category">
+              <option value="chore">Chore</option>
               <option value="reminder">Reminder</option>
               <option value="maintenance">Maintenance</option>
-              <option value="filter">Filter</option>
               <option value="note">Note</option>
               <option value="family">Family</option>
               <option value="status">Status</option>
@@ -47,6 +47,36 @@
             Due date
             <input name="dueDate" type="datetime-local" />
           </label>
+          <label class="inline-check">
+            <input id="is-recurring" name="isRecurring" type="checkbox" />
+            Repeat this item
+          </label>
+          <fieldset class="recurrence-fields" id="recurrence-fields" hidden>
+            <legend>Repeat settings</legend>
+            <label>
+              Frequency
+              <select name="recurrenceFrequency">
+                <option value="weekly">Weekly</option>
+                <option value="daily">Daily</option>
+              </select>
+            </label>
+            <label>
+              Interval
+              <input name="recurrenceInterval" type="number" min="1" max="52" value="1" />
+            </label>
+            <label>
+              Days of week (for weekly)
+              <div class="weekday-grid">
+                <label><input type="checkbox" name="daysOfWeek" value="0" /> Sun</label>
+                <label><input type="checkbox" name="daysOfWeek" value="1" /> Mon</label>
+                <label><input type="checkbox" name="daysOfWeek" value="2" /> Tue</label>
+                <label><input type="checkbox" name="daysOfWeek" value="3" /> Wed</label>
+                <label><input type="checkbox" name="daysOfWeek" value="4" /> Thu</label>
+                <label><input type="checkbox" name="daysOfWeek" value="5" /> Fri</label>
+                <label><input type="checkbox" name="daysOfWeek" value="6" /> Sat</label>
+              </div>
+            </label>
+          </fieldset>
           <label>
             Notes
             <textarea name="notes" rows="4" maxlength="1000"></textarea>

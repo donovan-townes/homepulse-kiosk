@@ -211,9 +211,7 @@ function renderMaintenance(items) {
   }
 
   const maintenanceItems = items
-    .filter(
-      (item) => item.category === "maintenance" || item.category === "filter",
-    )
+    .filter((item) => item.category === "maintenance")
     .filter((item) => item.status !== "done")
     .slice(0, 4);
 
@@ -247,7 +245,10 @@ function renderItems(items) {
     return;
   }
 
+  const todayCategories = new Set(["chore", "reminder", "family", "status"]);
+
   const scheduleItems = items
+    .filter((item) => todayCategories.has(item.category))
     .filter((item) => item.status !== "done")
     .sort((left, right) => {
       if (!left.due_date && !right.due_date) {
@@ -272,32 +273,22 @@ function renderItems(items) {
     (item) => item.due_date && isToday(new Date(item.due_date)),
   );
 
-  itemCountElement.textContent = `${todaysItems.length || scheduleItems.length} item${(todaysItems.length || scheduleItems.length) === 1 ? "" : "s"}`;
+  itemCountElement.textContent = `${todaysItems.length} item${todaysItems.length === 1 ? "" : "s"}`;
   itemsListElement.innerHTML = "";
 
-  if (scheduleItems.length === 0) {
+  if (todaysItems.length === 0) {
     const emptyState = document.createElement("li");
-    emptyState.textContent =
-      "No household items yet. Add your first reminder from the admin page.";
+    emptyState.textContent = "No scheduled activities today.";
     itemsListElement.append(emptyState);
-    statusHeadlineElement.textContent = "No schedule items yet.";
+    statusHeadlineElement.textContent = "No scheduled activities today.";
     statusSubtextElement.textContent =
-      "Open admin to add reminders or maintenance tasks.";
-    return;
+      "Recurring reminders will appear automatically on their next due day.";
+  } else {
+    statusHeadlineElement.textContent = "Everything is running smoothly today.";
+    statusSubtextElement.textContent = `${todaysItems.length} item${todaysItems.length === 1 ? "" : "s"} due today.`;
   }
 
-  statusHeadlineElement.textContent =
-    todaysItems.length > 0
-      ? "Everything is running smoothly today."
-      : "Upcoming schedule is ready.";
-  statusSubtextElement.textContent =
-    todaysItems.length > 0
-      ? `${todaysItems.length} item${todaysItems.length === 1 ? "" : "s"} due today.`
-      : "No items due today. Showing upcoming reminders.";
-
-  const renderSource = todaysItems.length > 0 ? todaysItems : scheduleItems;
-
-  for (const item of renderSource) {
+  for (const item of todaysItems) {
     const row = document.createElement("li");
     const priorityClass = item.priority === "high" ? " high" : "";
     row.innerHTML = `

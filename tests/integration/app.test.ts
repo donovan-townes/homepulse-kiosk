@@ -70,7 +70,7 @@ describe("HomePulse app", () => {
       .set("Cookie", cookie)
       .send({
         title: "Replace HVAC filter",
-        category: "filter",
+        category: "maintenance",
         priority: "high",
         notes: "Order two MERV-13 filters",
         dueDate: "2026-06-01T16:00:00.000Z",
@@ -85,10 +85,52 @@ describe("HomePulse app", () => {
     expect(listResponse.status).toBe(200);
     expect(listResponse.body.items).toHaveLength(1);
     expect(listResponse.body.items[0]).toMatchObject({
-      category: "filter",
+      category: "maintenance",
       priority: "high",
       title: "Replace HVAC filter",
     });
+  });
+
+  it("rolls recurring reminders forward after their due date passes", async () => {
+    const { app, database } = buildTestApp();
+
+    const loginResponse = await request(app).post("/api/admin/login").send({
+      pin: "1234",
+    });
+    const cookie = loginResponse.headers["set-cookie"];
+
+    const twoDaysAgo = new Date();
+    twoDaysAgo.setDate(twoDaysAgo.getDate() - 2);
+    twoDaysAgo.setHours(19, 0, 0, 0);
+
+    const createResponse = await request(app)
+      .post("/api/items")
+      .set("Cookie", cookie)
+      .send({
+        title: "Trash to curb",
+        category: "chore",
+        priority: "normal",
+        dueDate: twoDaysAgo.toISOString(),
+        recurrence: {
+          frequency: "weekly",
+          interval: 1,
+          daysOfWeek: [twoDaysAgo.getDay()],
+        },
+      });
+
+    expect(createResponse.status).toBe(201);
+
+    const listResponse = await request(app).get("/api/items");
+    database.close();
+
+    expect(listResponse.status).toBe(200);
+    expect(listResponse.body.items).toHaveLength(1);
+
+    const rolledDueDate = new Date(listResponse.body.items[0].due_date);
+    const startOfToday = new Date();
+    startOfToday.setHours(0, 0, 0, 0);
+
+    expect(rolledDueDate.getTime()).toBeGreaterThanOrEqual(startOfToday.getTime());
   });
 
   it("rejects invalid item payloads", async () => {

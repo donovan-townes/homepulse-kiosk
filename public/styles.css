@@ -226,24 +226,17 @@ h1 {
 }
 
 .weather-head h2 {
-  margin-bottom: 4px;
+  margin-bottom: 2px;
 }
 
 .weather-head p {
   margin: 0;
 }
 
-.weather-head-meta {
-  display: grid;
-  justify-items: end;
-  gap: 4px;
-}
-
 .weather-updated {
-  margin: 0;
+  margin: 3px 0 0;
   color: #d4dcf7;
-  font-size: 0.92rem;
-  text-align: right;
+  font-size: 0.84rem;
 }
 
 .weather-grid {
@@ -261,12 +254,13 @@ h1 {
 
 .weather-now {
   display: flex;
-  align-items: start;
+  align-items: center;
 }
 
 .weather-details {
   display: grid;
-  gap: 8px;
+  gap: 6px;
+  align-content: center;
 }
 
 .weather-card .list-meta,
@@ -281,8 +275,10 @@ h1 {
 }
 
 .weather-desc {
-  margin: 0;
+  margin: 0 0 2px;
   color: #c2cff5;
+  font-size: 1.05rem;
+  font-weight: 700;
 }
 
 .weather-range,
@@ -427,6 +423,40 @@ body.theme-dark .status-pill {
   display: inline-flex;
   align-items: center;
   gap: 12px;
+}
+
+.inline-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 600;
+}
+
+.recurrence-fields {
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 12px 14px;
+  display: grid;
+  gap: 10px;
+}
+
+.recurrence-fields legend {
+  padding: 0 6px;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.weekday-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.weekday-grid label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 500;
 }
 
 .auth-card {
