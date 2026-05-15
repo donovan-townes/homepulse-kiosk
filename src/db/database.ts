@@ -47,6 +47,12 @@ const migrations = [
       CREATE INDEX IF NOT EXISTS idx_items_is_recurring ON items (is_recurring);
     `,
   },
+  {
+    version: 3,
+    sql: `
+      ALTER TABLE items ADD COLUMN recurrence_day_of_month INTEGER;
+    `,
+  },
 ];
 
 export function openDatabase(databasePath: string): Database.Database {

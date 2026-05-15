@@ -53,16 +53,23 @@
           </label>
           <fieldset class="recurrence-fields" id="recurrence-fields" hidden>
             <legend>Repeat settings</legend>
+            <p class="list-meta recurrence-note">Repeats forever by default unless you manually remove it.</p>
             <label>
               Frequency
               <select name="recurrenceFrequency">
                 <option value="weekly">Weekly</option>
+                <option value="biweekly">Bi-weekly</option>
+                <option value="monthly">Monthly</option>
                 <option value="daily">Daily</option>
               </select>
             </label>
             <label>
               Interval
               <input name="recurrenceInterval" type="number" min="1" max="52" value="1" />
+            </label>
+            <label>
+              Day of month (for monthly)
+              <input name="dayOfMonth" type="number" min="1" max="31" placeholder="Uses due-date day by default" />
             </label>
             <label>
               Days of week (for weekly)
@@ -89,6 +96,9 @@
           <div class="section-heading">
             <h2>Current items</h2>
             <div class="inline-actions">
+              <button class="button secondary" id="delete-done-button" type="button">
+                Delete done
+              </button>
               <button class="button secondary" id="logout-button" type="button">
                 Lock admin
               </button>

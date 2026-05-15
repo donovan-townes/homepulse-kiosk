@@ -2,6 +2,7 @@ const formElement = document.querySelector("#item-form");
 const formStatusElement = document.querySelector("#form-status");
 const itemsListElement = document.querySelector("#admin-items-list");
 const logoutButtonElement = document.querySelector("#logout-button");
+const deleteDoneButtonElement = document.querySelector("#delete-done-button");
 const isRecurringElement = document.querySelector("#is-recurring");
 const recurrenceFieldsElement = document.querySelector("#recurrence-fields");
 
@@ -17,8 +18,17 @@ function formatItem(item) {
 
   return `
     <li>
-      <span class="pill${item.priority === "high" ? " high" : ""}">${item.priority}</span>
-      <strong>${item.title}</strong>
+      <div class="admin-item-header">
+        <span class="pill${item.priority === "high" ? " high" : ""}">${item.priority}</span>
+        <div class="admin-item-actions">
+          <label class="inline-check compact">
+            <input class="status-toggle" data-item-id="${item.id}" type="checkbox" ${item.status === "done" ? "checked" : ""} />
+            Done
+          </label>
+          <button class="button secondary small delete-item-button" data-item-id="${item.id}" type="button">Delete</button>
+        </div>
+      </div>
+      <strong class="${item.status === "done" ? "item-done" : ""}">${item.title}</strong>
       <span class="list-meta">${item.category} · ${dueDate}</span>
       <span class="list-meta">${item.notes || "No notes"}</span>
     </li>
@@ -69,6 +79,11 @@ if (formElement instanceof HTMLFormElement) {
       .getAll("daysOfWeek")
       .map((value) => Number(value))
       .filter((value) => Number.isInteger(value) && value >= 0 && value <= 6);
+    const dayOfMonthRaw = Number(formData.get("dayOfMonth") ?? "");
+    const dayOfMonth =
+      Number.isInteger(dayOfMonthRaw) && dayOfMonthRaw >= 1 && dayOfMonthRaw <= 31
+        ? dayOfMonthRaw
+        : undefined;
     const isRecurring =
       isRecurringElement instanceof HTMLInputElement
         ? isRecurringElement.checked
@@ -86,10 +101,19 @@ if (formElement instanceof HTMLFormElement) {
         ? {
             recurrence: {
               frequency:
-                recurrenceFrequency === "daily" ? "daily" : "weekly",
+                recurrenceFrequency === "daily"
+                  ? "daily"
+                  : recurrenceFrequency === "biweekly"
+                    ? "biweekly"
+                    : recurrenceFrequency === "monthly"
+                      ? "monthly"
+                      : "weekly",
               interval: recurrenceInterval,
-              ...(recurrenceFrequency === "weekly" && selectedDays.length > 0
+              ...(recurrenceFrequency !== "daily" && selectedDays.length > 0
                 ? { daysOfWeek: selectedDays }
+                : {}),
+              ...(recurrenceFrequency === "monthly" && dayOfMonth
+                ? { dayOfMonth }
                 : {}),
             },
           }
@@ -121,6 +145,78 @@ if (formElement instanceof HTMLFormElement) {
     if (formStatusElement) {
       formStatusElement.textContent = "Item created.";
     }
+    await loadItems();
+  });
+}
+
+if (itemsListElement instanceof HTMLElement) {
+  itemsListElement.addEventListener("change", async (event) => {
+    const target = event.target;
+    if (!(target instanceof HTMLInputElement) || !target.classList.contains("status-toggle")) {
+      return;
+    }
+
+    const itemId = target.dataset.itemId;
+    if (!itemId) {
+      return;
+    }
+
+    const response = await fetch(`/api/items/${itemId}/status`, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        status: target.checked ? "done" : "pending",
+      }),
+    });
+
+    if (!response.ok) {
+      target.checked = !target.checked;
+      return;
+    }
+
+    await loadItems();
+  });
+
+  itemsListElement.addEventListener("click", async (event) => {
+    const target = event.target;
+    if (!(target instanceof HTMLElement)) {
+      return;
+    }
+
+    const deleteButton = target.closest(".delete-item-button");
+    if (!(deleteButton instanceof HTMLButtonElement)) {
+      return;
+    }
+
+    const itemId = deleteButton.dataset.itemId;
+    if (!itemId) {
+      return;
+    }
+
+    const response = await fetch(`/api/items/${itemId}`, {
+      method: "DELETE",
+    });
+
+    if (!response.ok) {
+      return;
+    }
+
+    await loadItems();
+  });
+}
+
+if (deleteDoneButtonElement instanceof HTMLButtonElement) {
+  deleteDoneButtonElement.addEventListener("click", async () => {
+    const response = await fetch("/api/items?status=done", {
+      method: "DELETE",
+    });
+
+    if (!response.ok) {
+      return;
+    }
+
     await loadItems();
   });
 }

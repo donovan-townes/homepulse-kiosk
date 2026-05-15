@@ -21,9 +21,10 @@ const createItemSchema = z.object({
   notes: z.string().max(1000).optional(),
   recurrence: z
     .object({
-      frequency: z.enum(["daily", "weekly"]),
+      frequency: z.enum(["daily", "weekly", "biweekly", "monthly"]),
       interval: z.number().int().min(1).max(52).optional(),
       daysOfWeek: z.array(z.number().int().min(0).max(6)).optional(),
+      dayOfMonth: z.number().int().min(1).max(31).optional(),
     })
     .optional(),
 }).superRefine((value, context) => {
@@ -34,6 +35,22 @@ const createItemSchema = z.object({
       path: ["dueDate"],
     });
   }
+
+  if (
+    value.recurrence?.frequency === "monthly" &&
+    value.recurrence.dayOfMonth === undefined &&
+    !value.dueDate
+  ) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Monthly recurrence requires dayOfMonth or dueDate",
+      path: ["recurrence", "dayOfMonth"],
+    });
+  }
+});
+
+const updateItemStatusSchema = z.object({
+  status: z.enum(allowedStatuses),
 });
 
 const loginSchema = z.object({
@@ -321,6 +338,58 @@ export function createApp({ config, itemsRepository }: CreateAppOptions) {
 
     const item = itemsRepository.create(parsedBody.data, "admin");
     response.status(201).json({ item });
+  });
+
+  app.patch("/api/items/:id/status", requireAdmin, (request, response) => {
+    const itemId = Number(request.params.id);
+    if (Number.isNaN(itemId) || itemId < 1) {
+      response.status(400).json({ error: "Invalid item id" });
+      return;
+    }
+
+    const parsedBody = updateItemStatusSchema.safeParse(request.body);
+    if (!parsedBody.success) {
+      response.status(400).json({
+        error: "Invalid status payload",
+        issues: parsedBody.error.issues,
+      });
+      return;
+    }
+
+    const item = itemsRepository.updateStatus(itemId, parsedBody.data.status, "admin");
+    if (!item) {
+      response.status(404).json({ error: "Item not found" });
+      return;
+    }
+
+    response.json({ item });
+  });
+
+  app.delete("/api/items/:id", requireAdmin, (request, response) => {
+    const itemId = Number(request.params.id);
+    if (Number.isNaN(itemId) || itemId < 1) {
+      response.status(400).json({ error: "Invalid item id" });
+      return;
+    }
+
+    const deleted = itemsRepository.deleteById(itemId, "admin");
+    if (!deleted) {
+      response.status(404).json({ error: "Item not found" });
+      return;
+    }
+
+    response.status(204).send();
+  });
+
+  app.delete("/api/items", requireAdmin, (request, response) => {
+    const shouldDeleteDone = request.query.status === "done";
+    if (!shouldDeleteDone) {
+      response.status(400).json({ error: "Only status=done bulk delete is supported" });
+      return;
+    }
+
+    const deleted = itemsRepository.deleteDone("admin");
+    response.json({ deleted });
   });
 
   return app;

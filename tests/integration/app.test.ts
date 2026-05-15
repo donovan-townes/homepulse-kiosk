@@ -133,6 +133,33 @@ describe("HomePulse app", () => {
     expect(rolledDueDate.getTime()).toBeGreaterThanOrEqual(startOfToday.getTime());
   });
 
+  it("accepts monthly recurring items", async () => {
+    const { app, database } = buildTestApp();
+
+    const loginResponse = await request(app).post("/api/admin/login").send({
+      pin: "1234",
+    });
+    const cookie = loginResponse.headers["set-cookie"];
+
+    const createResponse = await request(app)
+      .post("/api/items")
+      .set("Cookie", cookie)
+      .send({
+        title: "Monthly deep clean",
+        category: "chore",
+        priority: "normal",
+        dueDate: "2026-06-01T18:00:00.000Z",
+        recurrence: {
+          frequency: "monthly",
+          interval: 1,
+          dayOfMonth: 1,
+        },
+      });
+
+    database.close();
+    expect(createResponse.status).toBe(201);
+  });
+
   it("rejects invalid item payloads", async () => {
     const { app, database } = buildTestApp();
 
@@ -162,6 +189,48 @@ describe("HomePulse app", () => {
     expect(response.status).toBe(200);
     expect(response.body).toHaveProperty("state");
     expect(response.body).toHaveProperty("lastCheckedAt");
+  });
+
+  it("updates item status and deletes completed items", async () => {
+    const { app, database } = buildTestApp();
+
+    const loginResponse = await request(app).post("/api/admin/login").send({
+      pin: "1234",
+    });
+    const cookie = loginResponse.headers["set-cookie"];
+
+    const createResponse = await request(app)
+      .post("/api/items")
+      .set("Cookie", cookie)
+      .send({
+        title: "Test completion flow",
+        category: "chore",
+        priority: "normal",
+      });
+
+    expect(createResponse.status).toBe(201);
+    const itemId = createResponse.body.item.id;
+
+    const updateStatusResponse = await request(app)
+      .patch(`/api/items/${itemId}/status`)
+      .set("Cookie", cookie)
+      .send({ status: "done" });
+
+    expect(updateStatusResponse.status).toBe(200);
+    expect(updateStatusResponse.body.item.status).toBe("done");
+
+    const deleteDoneResponse = await request(app)
+      .delete("/api/items?status=done")
+      .set("Cookie", cookie);
+
+    expect(deleteDoneResponse.status).toBe(200);
+    expect(deleteDoneResponse.body.deleted).toBeGreaterThanOrEqual(1);
+
+    const listResponse = await request(app).get("/api/items");
+    database.close();
+
+    expect(listResponse.status).toBe(200);
+    expect(listResponse.body.items.find((item: { id: number }) => item.id === itemId)).toBeUndefined();
   });
 
   it("blocks item creation without admin auth", async () => {

@@ -26,17 +26,19 @@ export type ItemRecord = {
   notes: string;
   source: string;
   is_recurring: 0 | 1;
-  recurrence_frequency: "daily" | "weekly" | null;
+  recurrence_frequency: "daily" | "weekly" | "biweekly" | "monthly" | null;
   recurrence_interval: number;
   recurrence_days_of_week: string | null;
+  recurrence_day_of_month: number | null;
   created_at: string;
   updated_at: string;
 };
 
 type RecurrenceInput = {
-  frequency: "daily" | "weekly";
+  frequency: "daily" | "weekly" | "biweekly" | "monthly";
   interval?: number;
   daysOfWeek?: number[];
+  dayOfMonth?: number;
 };
 
 export type CreateItemInput = {
@@ -57,6 +59,9 @@ export class ItemsRepository {
   private readonly getByIdStatement;
   private readonly listRecurringStatement;
   private readonly updateDueDateStatement;
+  private readonly updateStatusStatement;
+  private readonly deleteByIdStatement;
+  private readonly deleteDoneStatement;
 
   constructor(private readonly database: Database.Database) {
     this.listStatement = database.prepare<
@@ -76,6 +81,7 @@ export class ItemsRepository {
         recurrence_frequency,
         recurrence_interval,
         recurrence_days_of_week,
+        recurrence_day_of_month,
         created_at,
         updated_at
       FROM items
@@ -107,9 +113,10 @@ export class ItemsRepository {
         recurrence_frequency,
         recurrence_interval,
         recurrence_days_of_week,
+        recurrence_day_of_month,
         created_at,
         updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
 
     this.getByIdStatement = database.prepare<[number], ItemRecord>(`
@@ -126,6 +133,7 @@ export class ItemsRepository {
         recurrence_frequency,
         recurrence_interval,
         recurrence_days_of_week,
+        recurrence_day_of_month,
         created_at,
         updated_at
       FROM items
@@ -146,6 +154,7 @@ export class ItemsRepository {
         recurrence_frequency,
         recurrence_interval,
         recurrence_days_of_week,
+        recurrence_day_of_month,
         created_at,
         updated_at
       FROM items
@@ -157,6 +166,16 @@ export class ItemsRepository {
 
     this.updateDueDateStatement = database.prepare(
       "UPDATE items SET due_date = ?, updated_at = ? WHERE id = ?",
+    );
+
+    this.updateStatusStatement = database.prepare(
+      "UPDATE items SET status = ?, updated_at = ? WHERE id = ?",
+    );
+
+    this.deleteByIdStatement = database.prepare("DELETE FROM items WHERE id = ?");
+
+    this.deleteDoneStatement = database.prepare(
+      "DELETE FROM items WHERE status = 'done'",
     );
 
     this.createAuditStatement = database.prepare(`
@@ -180,6 +199,17 @@ export class ItemsRepository {
   create(input: CreateItemInput, actor = "system"): ItemRecord {
     const now = new Date().toISOString();
     const recurrenceInterval = Math.max(1, input.recurrence?.interval ?? 1);
+    const recurrenceDayOfMonth =
+      input.recurrence?.frequency === "monthly"
+        ? Math.min(
+            31,
+            Math.max(
+              1,
+              input.recurrence.dayOfMonth ??
+                (input.dueDate ? new Date(input.dueDate).getDate() : 1),
+            ),
+          )
+        : null;
     const recurrenceDays = input.recurrence?.daysOfWeek?.length
       ? input.recurrence.daysOfWeek.map((value) => Number(value)).join(",")
       : null;
@@ -197,6 +227,7 @@ export class ItemsRepository {
         input.recurrence?.frequency ?? null,
         recurrenceInterval,
         recurrenceDays,
+        recurrenceDayOfMonth,
         now,
         now,
       );
@@ -221,6 +252,78 @@ export class ItemsRepository {
     }
 
     return createdItem;
+  }
+
+  updateStatus(id: number, status: ItemStatus, actor = "system"): ItemRecord | undefined {
+    const now = new Date().toISOString();
+    const transaction = this.database.transaction(() => {
+      const result = this.updateStatusStatement.run(status, now, id);
+      if (result.changes === 0) {
+        return undefined;
+      }
+
+      this.createAuditStatement.run(
+        actor,
+        "update_status",
+        "item",
+        String(id),
+        JSON.stringify({ status }),
+        now,
+      );
+
+      return this.getByIdStatement.get(id);
+    });
+
+    return transaction();
+  }
+
+  deleteById(id: number, actor = "system"): boolean {
+    const now = new Date().toISOString();
+    const transaction = this.database.transaction(() => {
+      const existing = this.getByIdStatement.get(id);
+      if (!existing) {
+        return false;
+      }
+
+      const result = this.deleteByIdStatement.run(id);
+      if (result.changes === 0) {
+        return false;
+      }
+
+      this.createAuditStatement.run(
+        actor,
+        "delete",
+        "item",
+        String(id),
+        JSON.stringify(existing),
+        now,
+      );
+
+      return true;
+    });
+
+    return transaction();
+  }
+
+  deleteDone(actor = "system"): number {
+    const now = new Date().toISOString();
+    const transaction = this.database.transaction(() => {
+      const result = this.deleteDoneStatement.run();
+      const deleted = Number(result.changes);
+
+      this.createAuditStatement.run(
+        actor,
+        "delete_done",
+        "item",
+        "batch",
+        JSON.stringify({ deleted }),
+        now,
+      );
+
+      return deleted;
+    });
+
+    return transaction();
   }
 
   private rollForwardRecurringItems() {
@@ -253,9 +356,12 @@ export class ItemsRepository {
         while (nextDueDate < startOfToday && safetyCounter < 366) {
           if (frequency === "daily") {
             nextDueDate.setDate(nextDueDate.getDate() + interval);
-          } else if (frequency === "weekly") {
+          } else if (frequency === "weekly" || frequency === "biweekly") {
+            const weekMultiplier = frequency === "biweekly" ? 2 : 1;
             if (dayValues.length === 0) {
-              nextDueDate.setDate(nextDueDate.getDate() + 7 * interval);
+              nextDueDate.setDate(
+                nextDueDate.getDate() + 7 * interval * weekMultiplier,
+              );
             } else {
               const currentDay = nextDueDate.getDay();
               const nextDayInWeek = dayValues.find((day) => day > currentDay);
@@ -264,10 +370,31 @@ export class ItemsRepository {
               } else {
                 const firstDay = dayValues[0];
                 nextDueDate.setDate(
-                  nextDueDate.getDate() + (7 - currentDay + firstDay) + (interval - 1) * 7,
+                  nextDueDate.getDate() +
+                    (7 - currentDay + firstDay) +
+                    (interval * weekMultiplier - 1) * 7,
                 );
               }
             }
+          } else if (frequency === "monthly") {
+            const dayOfMonth = Math.min(
+              31,
+              Math.max(1, row.recurrence_day_of_month ?? nextDueDate.getDate()),
+            );
+
+            const year = nextDueDate.getFullYear();
+            const month = nextDueDate.getMonth() + interval;
+            const targetMonthDate = new Date(year, month, 1);
+            const daysInMonth = new Date(
+              targetMonthDate.getFullYear(),
+              targetMonthDate.getMonth() + 1,
+              0,
+            ).getDate();
+            const clampedDay = Math.min(dayOfMonth, daysInMonth);
+
+            nextDueDate = new Date(nextDueDate);
+            nextDueDate.setFullYear(targetMonthDate.getFullYear());
+            nextDueDate.setMonth(targetMonthDate.getMonth(), clampedDay);
           } else {
             break;
           }
